@@ -9,7 +9,7 @@ contract OnChainScheduler is ERC721 {
     string private constant _symbol = "SIWA";
 
     address private aggregator0Address;
-    address private contractCreator;
+    address private contractOwner;
     uint256 private aggregatorCounter;
     uint256 private roundRobinCounter;
     address[] private dkgCapacityHeap;
@@ -17,20 +17,30 @@ contract OnChainScheduler is ERC721 {
     mapping(address => uint256) private aggregatorRankMap;
 
     constructor() ERC721(_name, _symbol) {
-        contractCreator = msg.sender;
+        contractOwner = msg.sender;
     }
 
+    event AggregatorAlreadyRegistered(uint256 aggregatorId);
+    event AggregatorAlreadyActivated(uint256 aggregatorId);
+    event AggregatorAlreadyDeregistered();
+    event AggregatorAlreadyDeactivated();
+
     function registerAggregator() public returns (uint256) {
-        require(msg.sender == contractCreator);
+        require(msg.sender == contractOwner);
         if (aggregatorCounter == 0) {
             aggregator0Address = msg.sender;
         }
-        if (aggregatorRankMap[msg.sender] < dkgCapacityHeap.length) {
-            // if aggregator is unregistered, aggregatorRankMap[msg.sender] == 0
-            require(aggregatorRegistered(msg.sender));
-            return aggregatorIdMap[msg.sender];
+        uint256 aggregatorId;
+        if (aggregatorRegistered(msg.sender)) {
+            aggregatorId = aggregatorIdMap[msg.sender];
+            emit AggregatorAlreadyRegistered(aggregatorId);
+            if (aggregatorActivated(msg.sender)) {
+                emit AggregatorAlreadyActivated(aggregatorId);
+                return aggregatorId;
+            }
+        } else {
+            aggregatorId = aggregatorCounter++;
         }
-        uint256 aggregatorId = aggregatorCounter++;
         dkgCapacityHeap.push(msg.sender);
         aggregatorRankMap[msg.sender] = dkgCapacityHeap.length - 1;
         swapElemOfHeap(0, dkgCapacityHeap.length - 1);
@@ -40,12 +50,16 @@ contract OnChainScheduler is ERC721 {
     }
 
     function deregisterAggregator() public {
-        require(msg.sender == contractCreator);
-        require(aggregatorRegistered(msg.sender));
-        uint256 rank = aggregatorRankMap[msg.sender];
-        if (rank >= dkgCapacityHeap.length) {
+        require(msg.sender == contractOwner);
+        if (!aggregatorRegistered(msg.sender)) {
+            emit AggregatorAlreadyDeregistered();
             return;
         }
+        if (!aggregatorActivated(msg.sender)) {
+            emit AggregatorAlreadyDeactivated();
+            return;
+        }
+        uint256 rank = aggregatorRankMap[msg.sender];
         swapElemOfHeap(rank, dkgCapacityHeap.length - 1);
         swapElemOfHeap(0, rank);
         dkgCapacityHeap.pop();
@@ -65,6 +79,7 @@ contract OnChainScheduler is ERC721 {
 
     function increaseDkgCapacity(uint256 nftId) public {
         require(aggregatorRegistered(msg.sender));
+        require(aggregatorActivated(msg.sender));
         uint256 rank = aggregatorRankMap[msg.sender];
         _safeMint(msg.sender, nftId);
         minHeapify(rank);
@@ -72,9 +87,9 @@ contract OnChainScheduler is ERC721 {
 
     function decreaseDkgCapacity(uint256 nftId) public {
         require(aggregatorRegistered(msg.sender));
+        require(aggregatorActivated(msg.sender));
         uint256 rank = aggregatorRankMap[msg.sender];
         _burn(nftId);
-        require(dkgCapacityHeap.length > 0);
         swapElemOfHeap(0, rank);
         minHeapify(0);
     }
@@ -93,7 +108,28 @@ contract OnChainScheduler is ERC721 {
         return true;
     }
 
+    function aggregatorActivated(address aggregatorAddress)
+        private
+        view
+        returns (bool)
+    {
+        uint256 rank = aggregatorRankMap[aggregatorAddress];
+        if (rank == 0) {
+            if (dkgCapacityHeap.length == 0) {
+                return false;
+            }
+            return aggregatorAddress == dkgCapacityHeap[0];
+        }
+        if (rank >= dkgCapacityHeap.length) {
+            return false;
+        }
+        return aggregatorAddress == dkgCapacityHeap[rank];
+    }
+
     function swapElemOfHeap(uint256 x, uint256 y) private {
+        if (x >= dkgCapacityHeap.length || y >= dkgCapacityHeap.length) {
+            return;
+        }
         address elemAtX = dkgCapacityHeap[x];
         dkgCapacityHeap[x] = dkgCapacityHeap[y];
         dkgCapacityHeap[y] = elemAtX;
