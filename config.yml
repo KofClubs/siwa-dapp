@@ -1,0 +1,11 @@
+ethereum:
+  protocol: "http"
+  addr: "127.0.0.1:7545"
+  gas: 6721975
+  gas_price: 20000000000
+
+on_chain_scheduler:
+  contract_address: "0x76C128F7C788477fc49C88f120076E57775ab8B6"
+  aggregator_addresses:
+    - "0x53C86d1ECFc21202D68AC126CD18007FBcded9da"
+    - "0x6ec458dcAaDDD05BBc08E8D9d3B159874c020368"

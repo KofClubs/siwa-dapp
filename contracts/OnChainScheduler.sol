@@ -9,16 +9,13 @@ contract OnChainScheduler is ERC721 {
     string private constant _symbol = "SIWA";
 
     address private aggregator0Address;
-    address private contractOwner;
     uint256 private aggregatorCounter;
     uint256 private roundRobinCounter;
     address[] private dkgCapacityHeap;
     mapping(address => uint256) private aggregatorIdMap;
     mapping(address => uint256) private aggregatorRankMap;
 
-    constructor() ERC721(_name, _symbol) {
-        contractOwner = msg.sender;
-    }
+    constructor() ERC721(_name, _symbol) {}
 
     event AggregatorAlreadyRegistered(uint256 aggregatorId);
     event AggregatorAlreadyActivated(uint256 aggregatorId);
@@ -26,7 +23,6 @@ contract OnChainScheduler is ERC721 {
     event AggregatorAlreadyDeactivated();
 
     function registerAggregator() public returns (uint256) {
-        require(msg.sender == contractOwner);
         if (aggregatorCounter == 0) {
             aggregator0Address = msg.sender;
         }
@@ -50,7 +46,6 @@ contract OnChainScheduler is ERC721 {
     }
 
     function deregisterAggregator() public {
-        require(msg.sender == contractOwner);
         if (!aggregatorRegistered(msg.sender)) {
             emit AggregatorAlreadyDeregistered();
             return;
