@@ -11,7 +11,9 @@ const readline = Readline.createInterface({
     output: process.stdout
 })
 
-const onChainSchedulerAbi = require('./build/contracts/OnChainScheduler.json').abi
+const Fs = require('fs');
+const onChainSchedulerJson = Fs.readFileSync('./build/OnChainScheduler.abi');
+const onChainSchedulerAbi = JSON.parse(onChainSchedulerJson);
 const onChainSchedulerContract = new web3.eth.Contract(onChainSchedulerAbi, config.on_chain_scheduler.contract_address, {
     gas: config.ethereum.gas,
     gasPrice: config.ethereum.gas_price
@@ -26,19 +28,19 @@ console.log("4. decreaseDkgCapacity")
 readline.question('Type the index to execute the corresponding function, type something else to exit:\n', index => {
     switch (index) {
         case '0':
-            registerAggregator()
+            executeRegisterAggregator()
             break
         case '1':
-            deregisterAggregator()
+            executeDeregisterAggregator()
             break
         case '2':
-            assignAggregator()
+            executeAssignAggregator()
             break
         case '3':
-            increaseDkgCapacity()
+            executeIncreaseDkgCapacity()
             break
         case '4':
-            decreaseDkgCapacity()
+            executeDecreaseDkgCapacity()
             break
         default:
             process.exit()
@@ -46,30 +48,38 @@ readline.question('Type the index to execute the corresponding function, type so
 })
 
 function executeRegisterAggregator() {
-    onChainSchedulerContract.methods.registerAggregator().call().then(result => {
-        console.log(result)
+    onChainSchedulerContract.methods.registerAggregator().send({
+        from: config.on_chain_scheduler.aggregator_addresses[0]
+    }).then(receipt => {
+        console.log(receipt)
     })
     readline.close()
 }
 
 function executeDeregisterAggregator() {
-    onChainSchedulerContract.methods.deregisterAggregator().call().then(result => {
-        console.log(result)
+    onChainSchedulerContract.methods.deregisterAggregator().send({
+        from: config.on_chain_scheduler.aggregator_addresses[0]
+    }).then(receipt => {
+        console.log(receipt)
     })
     readline.close()
 }
 
 function executeAssignAggregator() {
-    onChainSchedulerContract.methods.assignAggregator().call().then(result => {
-        console.log(result)
+    onChainSchedulerContract.methods.assignAggregator().send({
+        from: config.on_chain_scheduler.owner_address
+    }).then(receipt => {
+        console.log(receipt)
     })
     readline.close()
 }
 
 function executeIncreaseDkgCapacity() {
     readline.question('Type the NFT ID:\n', _nftId => {
-        onChainSchedulerContract.methods.increaseDkgCapacity(_nftId).call().then(result => {
-            console.log(result)
+        onChainSchedulerContract.methods.increaseDkgCapacity(_nftId).send({
+            from: config.on_chain_scheduler.aggregator_addresses[0]
+        }).then(receipt => {
+            console.log(receipt)
         })
         readline.close()
     })
@@ -77,8 +87,10 @@ function executeIncreaseDkgCapacity() {
 
 function executeDecreaseDkgCapacity() {
     readline.question('Type the NFT ID:\n', _nftId => {
-        onChainSchedulerContract.methods.decreaseDkgCapacity(_nftId).call().then(result => {
-            console.log(result)
+        onChainSchedulerContract.methods.decreaseDkgCapacity(_nftId).send({
+            from: config.on_chain_scheduler.aggregator_addresses[0]
+        }).then(receipt => {
+            console.log(receipt)
         })
         readline.close()
     })
