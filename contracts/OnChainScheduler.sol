@@ -19,13 +19,15 @@ contract OnChainScheduler is ERC721 {
 
     event AggregatorAlreadyRegistered(uint256 aggregatorId);
     event AggregatorAlreadyActivated(uint256 aggregatorId);
-    event AggregatorAlreadyDeregistered();
-    event AggregatorAlreadyDeactivated();
+    event AggregatorActivated(uint256 aggregatorId);
+    event AggregatorUnregistered();
+    event AggregatorAlreadyDeactivated(uint256 aggregatorId);
+    event AggregatorDeactivated(uint256 aggregatorId);
+    event AggregatorAssigned(uint256 aggregatorId);
+    event DkgCapacityIncreased(uint256 aggregatorId, uint256 dkgCapacity);
+    event DkgCapacityDecreased(uint256 aggregatorId, uint256 dkgCapacity);
 
-    function registerAggregator() public returns (uint256) {
-        if (aggregatorCounter == 0) {
-            aggregator0Address = msg.sender;
-        }
+    function activateAggregator() public returns (uint256) {
         uint256 aggregatorId;
         if (aggregatorRegistered(msg.sender)) {
             aggregatorId = aggregatorIdMap[msg.sender];
@@ -35,6 +37,9 @@ contract OnChainScheduler is ERC721 {
                 return aggregatorId;
             }
         } else {
+            if (aggregatorCounter == 0) {
+                aggregator0Address = msg.sender;
+            }
             aggregatorId = aggregatorCounter++;
         }
         dkgCapacityHeap.push(msg.sender);
@@ -42,16 +47,18 @@ contract OnChainScheduler is ERC721 {
         swapElemOfHeap(0, dkgCapacityHeap.length - 1);
         minHeapify(0);
         aggregatorIdMap[msg.sender] = aggregatorId;
+        emit AggregatorActivated(aggregatorId);
         return aggregatorId;
     }
 
-    function deregisterAggregator() public {
+    function deactivateAggregator() public {
         if (!aggregatorRegistered(msg.sender)) {
-            emit AggregatorAlreadyDeregistered();
+            emit AggregatorUnregistered();
             return;
         }
+        uint256 aggregatorId = aggregatorIdMap[msg.sender];
         if (!aggregatorActivated(msg.sender)) {
-            emit AggregatorAlreadyDeactivated();
+            emit AggregatorAlreadyDeactivated(aggregatorId);
             return;
         }
         uint256 rank = aggregatorRankMap[msg.sender];
@@ -59,6 +66,7 @@ contract OnChainScheduler is ERC721 {
         swapElemOfHeap(0, rank);
         dkgCapacityHeap.pop();
         minHeapify(0);
+        emit AggregatorDeactivated(aggregatorId);
     }
 
     function assignAggregator() public returns (uint256) {
@@ -69,6 +77,7 @@ contract OnChainScheduler is ERC721 {
         } else {
             aggregatorId = aggregatorIdMap[dkgCapacityHeap[0]];
         }
+        emit AggregatorAssigned(aggregatorId);
         return aggregatorId;
     }
 
@@ -78,6 +87,10 @@ contract OnChainScheduler is ERC721 {
         uint256 rank = aggregatorRankMap[msg.sender];
         _safeMint(msg.sender, nftId);
         minHeapify(rank);
+        emit DkgCapacityIncreased(
+            aggregatorIdMap[msg.sender],
+            balanceOf(msg.sender)
+        );
     }
 
     function decreaseDkgCapacity(uint256 nftId) public {
@@ -87,6 +100,10 @@ contract OnChainScheduler is ERC721 {
         _burn(nftId);
         swapElemOfHeap(0, rank);
         minHeapify(0);
+        emit DkgCapacityDecreased(
+            aggregatorIdMap[msg.sender],
+            balanceOf(msg.sender)
+        );
     }
 
     function aggregatorRegistered(address aggregatorAddress)
@@ -109,12 +126,6 @@ contract OnChainScheduler is ERC721 {
         returns (bool)
     {
         uint256 rank = aggregatorRankMap[aggregatorAddress];
-        if (rank == 0) {
-            if (dkgCapacityHeap.length == 0) {
-                return false;
-            }
-            return aggregatorAddress == dkgCapacityHeap[0];
-        }
         if (rank >= dkgCapacityHeap.length) {
             return false;
         }

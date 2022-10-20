@@ -1,5 +1,8 @@
 build/
 node_modules/
-config.yml
 
+config/*
 .DS_Store
+
+!config/
+!config/template.json
