@@ -10,31 +10,35 @@ contract OnChainScheduler is ERC721 {
 
     address private aggregator0Address;
     uint256 private aggregatorCounter;
-    uint256 private roundRobinCounter;
     address[] private dkgCapacityHeap;
     mapping(address => uint256) private aggregatorIdMap;
     mapping(address => uint256) private aggregatorRankMap;
 
     constructor() ERC721(_name, _symbol) {}
 
+    // todo: add context to event and function parameters
     event AggregatorAlreadyRegistered(uint256 aggregatorId);
     event AggregatorAlreadyActivated(uint256 aggregatorId);
     event AggregatorActivated(uint256 aggregatorId);
     event AggregatorUnregistered();
     event AggregatorAlreadyDeactivated(uint256 aggregatorId);
     event AggregatorDeactivated(uint256 aggregatorId);
-    event AggregatorAssigned(uint256 aggregatorId);
     event DkgCapacityIncreased(uint256 aggregatorId, uint256 dkgCapacity);
     event DkgCapacityDecreased(uint256 aggregatorId, uint256 dkgCapacity);
 
-    function activateAggregator() public returns (uint256) {
+    function assignAggregator() public view returns (uint256) {
+        require(dkgCapacityHeap.length > 0);
+        uint256 aggregatorId = aggregatorIdMap[dkgCapacityHeap[0]];
+        return aggregatorId;
+    }
+
+    function activateAggregator() public {
         uint256 aggregatorId;
         if (aggregatorRegistered(msg.sender)) {
             aggregatorId = aggregatorIdMap[msg.sender];
             emit AggregatorAlreadyRegistered(aggregatorId);
             if (aggregatorActivated(msg.sender)) {
                 emit AggregatorAlreadyActivated(aggregatorId);
-                return aggregatorId;
             }
         } else {
             if (aggregatorCounter == 0) {
@@ -48,7 +52,6 @@ contract OnChainScheduler is ERC721 {
         minHeapify(0);
         aggregatorIdMap[msg.sender] = aggregatorId;
         emit AggregatorActivated(aggregatorId);
-        return aggregatorId;
     }
 
     function deactivateAggregator() public {
@@ -67,18 +70,6 @@ contract OnChainScheduler is ERC721 {
         dkgCapacityHeap.pop();
         minHeapify(0);
         emit AggregatorDeactivated(aggregatorId);
-    }
-
-    function assignAggregator() public returns (uint256) {
-        uint256 aggregatorId = roundRobinCounter;
-        if (dkgCapacityHeap.length == 0) {
-            require(aggregatorCounter > 0);
-            roundRobinCounter = (roundRobinCounter + 1) % aggregatorCounter;
-        } else {
-            aggregatorId = aggregatorIdMap[dkgCapacityHeap[0]];
-        }
-        emit AggregatorAssigned(aggregatorId);
-        return aggregatorId;
     }
 
     function increaseDkgCapacity(uint256 nftId) public {

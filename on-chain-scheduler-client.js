@@ -19,21 +19,21 @@ const onChainSchedulerContract = new web3.eth.Contract(onChainSchedulerAbi, Conf
 })
 
 console.log("The on-chain scheduler supports these functions:")
-console.log("0. activateAggregator")
-console.log("1. deactivateAggregator")
-console.log("2. assignAggregator")
+console.log("0. assignAggregator")
+console.log("1. activateAggregator")
+console.log("2. deactivateAggregator")
 console.log("3. increaseDkgCapacity")
 console.log("4. decreaseDkgCapacity")
 readline.question('Type the index to execute the corresponding function, type something else to exit:\n', index => {
     switch (index) {
         case '0':
-            executeActivateAggregator()
+            executeAssignAggregator()
             break
         case '1':
-            executeDeactivateAggregator()
+            executeActivateAggregator()
             break
         case '2':
-            executeAssignAggregator()
+            executeDeactivateAggregator()
             break
         case '3':
             executeIncreaseDkgCapacity()
@@ -45,6 +45,13 @@ readline.question('Type the index to execute the corresponding function, type so
             process.exit()
     }
 })
+
+function executeAssignAggregator() {
+    onChainSchedulerContract.methods.assignAggregator().call().then(result => {
+        console.log(result)
+    })
+    readline.close()
+}
 
 function executeActivateAggregator() {
     readline.question('Type the rank of aggregator:\n', _rank => {
@@ -66,15 +73,6 @@ function executeDeactivateAggregator() {
         })
         readline.close()
     })
-}
-
-function executeAssignAggregator() {
-    onChainSchedulerContract.methods.assignAggregator().send({
-        from: Config.get('on_chain_scheduler.owner_address')
-    }).then(receipt => {
-        console.log(receipt)
-    })
-    readline.close()
 }
 
 function executeIncreaseDkgCapacity() {
