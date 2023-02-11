@@ -3,57 +3,71 @@ const OnChainScheduler = artifacts.require('OnChainScheduler')
 const TruffleAssert = require('truffle-assertions')
 
 contract('OnChainScheduler', accounts => {
-    const expectedName = 'SiwaNFT'
-    const expectedSymbol = 'SIWA'
+    const expectedOwner = accounts[0]
 
     beforeEach('deploy testing contract', async () => {
         instance = await OnChainScheduler.new()
     })
 
     describe('test constructor', async () => {
-        it('name shall be "' + expectedName + '"', async () => {
-            let _name = await instance.name()
-            assert.equal(_name, expectedName, 'wrong name')
-        })
-
-        it('symbol shall be "' + expectedSymbol + '"', async () => {
-            let _symbol = await instance.symbol()
-            assert.equal(_symbol, expectedSymbol, 'wrong symbol')
+        it('owner shall be accounts[0]', async () => {
+            let actualOwner = await instance.getOwner()
+            assert.equal(actualOwner, expectedOwner, 'wrong owner')
         })
     })
 
     describe('test functions', async () => {
         it('test all public functions', async () => {
-            let activateAggregatorResult = await instance.activateAggregator({
+            /****** new group 1, 2; delete group 1, 2 ******/
+            let newGroup1Result = await instance.newGroup({
                 from: accounts[0]
             })
-            TruffleAssert.eventEmitted(activateAggregatorResult, 'AggregatorActivated', (ev) => {
-                return ev.aggregatorId.toString() === '0'
-            }, 'AggregatorActivated not emitted')
+            TruffleAssert.eventEmitted(newGroup1Result, 'GroupNewed', (ev) => {
+                return ev.id.toString() === '1'
+            }, 'GroupNewed not emitted')
 
-            let assignAggregatorResult = await instance.assignAggregator()
-            assert.equal(assignAggregatorResult.toString(), '0', 'wrong aggregator id')
-
-            let increaseDkgCapacityResult = await instance.increaseDkgCapacity(0, {
+            let newGroup2Result = await instance.newGroup({
                 from: accounts[0]
             })
-            TruffleAssert.eventEmitted(increaseDkgCapacityResult, 'DkgCapacityIncreased', (ev) => {
-                return ev.aggregatorId.toString() === '0' && ev.dkgCapacity.toString() === '1'
-            }, 'DkgCapacityIncreased not emitted')
+            TruffleAssert.eventEmitted(newGroup2Result, 'GroupNewed', (ev) => {
+                return ev.id.toString() === '2'
+            }, 'GroupNewed not emitted')
 
-            let decreaseDkgCapacityResult = await instance.decreaseDkgCapacity(0, {
+            let deleteGroup1Result = await instance.deleteGroup(1, {
                 from: accounts[0]
             })
-            TruffleAssert.eventEmitted(decreaseDkgCapacityResult, 'DkgCapacityDecreased', (ev) => {
-                return ev.aggregatorId.toString() === '0' && ev.dkgCapacity.toString() === '0'
-            }, 'DkgCapacityDecreased not emitted')
+            TruffleAssert.eventEmitted(deleteGroup1Result, 'GroupDeletedWithTransfer', (ev) => {
+                return ev.from.toString() === '1' && ev.to.toString() === '2' && ev.size.toString() === '0'
+            }, 'GroupDeletedWithTransfer not emitted')
 
-            let deactivateAggregatorResult = await instance.deactivateAggregator({
+            let deleteGroup2Result = await instance.deleteGroup(2, {
                 from: accounts[0]
             })
-            TruffleAssert.eventEmitted(deactivateAggregatorResult, 'AggregatorDeactivated', (ev) => {
-                return ev.aggregatorId.toString() === '0'
-            }, 'AggregatorDeactivated not emitted')
+            TruffleAssert.eventEmitted(deleteGroup2Result, 'GroupDeletedWithoutTransfer', (ev) => {
+                return ev.id.toString() === '2' && ev.size.toString() === '0'
+            }, 'GroupDeletedWithoutTransfer not emitted')
+
+            /****** increase size of group 3, decrease size of group 3 ******/
+            let newGroup3Result = await instance.newGroup({
+                from: accounts[0]
+            })
+            TruffleAssert.eventEmitted(newGroup3Result, 'GroupNewed', (ev) => {
+                return ev.id.toString() === '3'
+            }, 'GroupNewed not emitted')
+
+            let increaseGroup3SizeResult = await instance.increaseGroupSize(3, {
+                from: accounts[0]
+            })
+            TruffleAssert.eventEmitted(increaseGroup3SizeResult, 'GroupSizeUpdated', (ev) => {
+                return ev.id.toString() === '3' && ev.size.toString() === '1'
+            }, 'GroupSizeUpdated not emitted')
+
+            let decreaseGroup3SizeResult = await instance.decreaseGroupSize(3, {
+                from: accounts[0]
+            })
+            TruffleAssert.eventEmitted(decreaseGroup3SizeResult, 'GroupSizeUpdated', (ev) => {
+                return ev.id.toString() === '3' && ev.size.toString() === '0'
+            }, 'GroupSizeUpdated not emitted')
         })
     })
 })
