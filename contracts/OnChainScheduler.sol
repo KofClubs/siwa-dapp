@@ -1,160 +1,147 @@
 // contracts/OnChainScheduler.sol
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.6.0;
 
-import "../node_modules/@openzeppelin/contracts/token/ERC721/ERC721.sol";
+contract OnChainScheduler {
+    address private _owner;
+    uint256 private _groupCounter;
+    uint256[] private _groupHeap;
+    mapping(uint256 => bool) private _groupDeleted;
+    mapping(uint256 => uint256) private _groupRankInHeap;
+    mapping(uint256 => uint256) private _groupSize;
 
-contract OnChainScheduler is ERC721 {
-    string private constant _name = "SiwaNFT";
-    string private constant _symbol = "SIWA";
-
-    address private aggregator0Address;
-    uint256 private aggregatorCounter;
-    address[] private dkgCapacityHeap;
-    mapping(address => uint256) private aggregatorIdMap;
-    mapping(address => uint256) private aggregatorRankMap;
-
-    constructor() ERC721(_name, _symbol) {}
-
-    // todo: add context to event and function parameters
-    event AggregatorAlreadyRegistered(uint256 aggregatorId);
-    event AggregatorAlreadyActivated(uint256 aggregatorId);
-    event AggregatorActivated(uint256 aggregatorId);
-    event AggregatorUnregistered();
-    event AggregatorAlreadyDeactivated(uint256 aggregatorId);
-    event AggregatorDeactivated(uint256 aggregatorId);
-    event DkgCapacityIncreased(uint256 aggregatorId, uint256 dkgCapacity);
-    event DkgCapacityDecreased(uint256 aggregatorId, uint256 dkgCapacity);
-
-    function assignAggregator() public view returns (uint256) {
-        require(dkgCapacityHeap.length > 0);
-        uint256 aggregatorId = aggregatorIdMap[dkgCapacityHeap[0]];
-        return aggregatorId;
+    constructor() public {
+        _owner = msg.sender;
     }
 
-    function activateAggregator() public {
-        uint256 aggregatorId;
-        if (aggregatorRegistered(msg.sender)) {
-            aggregatorId = aggregatorIdMap[msg.sender];
-            emit AggregatorAlreadyRegistered(aggregatorId);
-            if (aggregatorActivated(msg.sender)) {
-                emit AggregatorAlreadyActivated(aggregatorId);
+    event GroupNewed(uint256 id);
+    event GroupDeletedWithoutTransfer(uint256 id, uint256 size);
+    event GroupDeletedWithTransfer(uint256 from, uint256 to, uint256 size);
+    event GroupSizeUpdated(uint256 id, uint256 size);
+
+    modifier isValidGroup(uint256 groupId) {
+        require(groupId > 0);
+        require(groupId <= _groupCounter);
+        require(!_groupDeleted[groupId]);
+        _;
+    }
+
+    function getOwner() public view returns (address) {
+        return _owner;
+    }
+
+    function assignGroup() public view returns (uint256) {
+        require(_groupHeap.length > 0);
+        return _groupHeap[0];
+    }
+
+    function newGroup() public returns (uint256) {
+        require(msg.sender == _owner);
+        _groupCounter++;
+        _groupHeap.push(_groupCounter);
+        _groupRankInHeap[_groupCounter] = _groupHeap.length - 1;
+        percolateUp(_groupHeap.length - 1);
+        emit GroupNewed(_groupCounter);
+        return _groupCounter;
+    }
+
+    function deleteGroup(uint256 groupId) public isValidGroup(groupId) {
+        require(msg.sender == _owner);
+        _groupDeleted[groupId] = true;
+        if (_groupHeap.length == 1) {
+            _groupHeap.pop();
+            emit GroupDeletedWithoutTransfer(groupId, _groupSize[groupId]);
+            return;
+        }
+        uint256 groupRankInHeap = _groupRankInHeap[groupId];
+        uint256 transferTo = _groupHeap[0];
+        uint256 transferSize = _groupSize[groupId];
+        if (groupRankInHeap == 0) {
+            uint256 targetRank = 1;
+            if (
+                _groupHeap.length > 2 &&
+                _groupSize[_groupHeap[2]] < _groupSize[_groupHeap[1]]
+            ) {
+                targetRank = 2;
             }
+            transferTo = _groupHeap[targetRank];
+            _groupSize[transferTo] += transferSize;
+            _groupSize[groupId] = 0;
+            percolateDown(targetRank);
+            swapInHeap(0, _groupHeap.length - 1);
+            _groupHeap.pop();
         } else {
-            if (aggregatorCounter == 0) {
-                aggregator0Address = msg.sender;
-            }
-            aggregatorId = aggregatorCounter++;
+            _groupSize[transferTo] += transferSize;
+            _groupSize[groupId] = 0;
+            swapInHeap(groupRankInHeap, _groupHeap.length - 1);
+            _groupHeap.pop();
+            percolateDown(groupRankInHeap);
         }
-        dkgCapacityHeap.push(msg.sender);
-        aggregatorRankMap[msg.sender] = dkgCapacityHeap.length - 1;
-        swapElemOfHeap(0, dkgCapacityHeap.length - 1);
-        minHeapify(0);
-        aggregatorIdMap[msg.sender] = aggregatorId;
-        emit AggregatorActivated(aggregatorId);
+        percolateDown(0);
+        emit GroupDeletedWithTransfer(groupId, transferTo, transferSize);
     }
 
-    function deactivateAggregator() public {
-        if (!aggregatorRegistered(msg.sender)) {
-            emit AggregatorUnregistered();
+    function increaseGroupSize(uint256 groupId) public isValidGroup(groupId) {
+        require(msg.sender == _owner);
+        _groupSize[groupId]++;
+        percolateDown(_groupRankInHeap[groupId]);
+        emit GroupSizeUpdated(groupId, _groupSize[groupId]);
+    }
+
+    function decreaseGroupSize(uint256 groupId) public isValidGroup(groupId) {
+        require(msg.sender == _owner);
+        if (_groupSize[groupId] == 0) {
             return;
         }
-        uint256 aggregatorId = aggregatorIdMap[msg.sender];
-        if (!aggregatorActivated(msg.sender)) {
-            emit AggregatorAlreadyDeactivated(aggregatorId);
+        _groupSize[groupId]--;
+        percolateUp(_groupRankInHeap[groupId]);
+        emit GroupSizeUpdated(groupId, _groupSize[groupId]);
+    }
+
+    function swapInHeap(uint256 rank1, uint256 rank2) private {
+        if (rank1 >= _groupHeap.length || rank2 >= _groupHeap.length) {
             return;
         }
-        uint256 rank = aggregatorRankMap[msg.sender];
-        swapElemOfHeap(rank, dkgCapacityHeap.length - 1);
-        swapElemOfHeap(0, rank);
-        dkgCapacityHeap.pop();
-        minHeapify(0);
-        emit AggregatorDeactivated(aggregatorId);
+        uint256 elem1 = _groupHeap[rank1];
+        _groupHeap[rank1] = _groupHeap[rank2];
+        _groupHeap[rank2] = elem1;
+        _groupRankInHeap[_groupHeap[rank1]] = rank1;
+        _groupRankInHeap[_groupHeap[rank2]] = rank2;
     }
 
-    function increaseDkgCapacity(uint256 nftId) public {
-        require(aggregatorRegistered(msg.sender));
-        require(aggregatorActivated(msg.sender));
-        uint256 rank = aggregatorRankMap[msg.sender];
-        _safeMint(msg.sender, nftId);
-        minHeapify(rank);
-        emit DkgCapacityIncreased(
-            aggregatorIdMap[msg.sender],
-            balanceOf(msg.sender)
-        );
-    }
-
-    function decreaseDkgCapacity(uint256 nftId) public {
-        require(aggregatorRegistered(msg.sender));
-        require(aggregatorActivated(msg.sender));
-        uint256 rank = aggregatorRankMap[msg.sender];
-        _burn(nftId);
-        swapElemOfHeap(0, rank);
-        minHeapify(0);
-        emit DkgCapacityDecreased(
-            aggregatorIdMap[msg.sender],
-            balanceOf(msg.sender)
-        );
-    }
-
-    function aggregatorRegistered(address aggregatorAddress)
-        private
-        view
-        returns (bool)
-    {
-        uint256 aggregatorId = aggregatorIdMap[aggregatorAddress];
-        if (aggregatorId == 0) {
-            return
-                aggregator0Address != address(0) &&
-                aggregatorAddress == aggregator0Address;
-        }
-        return true;
-    }
-
-    function aggregatorActivated(address aggregatorAddress)
-        private
-        view
-        returns (bool)
-    {
-        uint256 rank = aggregatorRankMap[aggregatorAddress];
-        if (rank >= dkgCapacityHeap.length) {
-            return false;
-        }
-        return aggregatorAddress == dkgCapacityHeap[rank];
-    }
-
-    function swapElemOfHeap(uint256 x, uint256 y) private {
-        if (x >= dkgCapacityHeap.length || y >= dkgCapacityHeap.length) {
+    function percolateUp(uint256 rank) private {
+        if (rank == 0) {
             return;
         }
-        address elemAtX = dkgCapacityHeap[x];
-        dkgCapacityHeap[x] = dkgCapacityHeap[y];
-        dkgCapacityHeap[y] = elemAtX;
-        aggregatorRankMap[dkgCapacityHeap[x]] = x;
-        aggregatorRankMap[dkgCapacityHeap[y]] = y;
+        uint256 parent = (rank - 1) / 2;
+        if (_groupSize[_groupHeap[parent]] <= _groupSize[_groupHeap[rank]]) {
+            return;
+        }
+        swapInHeap(parent, rank);
+        percolateUp(parent);
     }
 
-    function minHeapify(uint256 rank) private {
+    function percolateDown(uint256 rank) private {
         uint256 leftChild = rank * 2 + 1;
         uint256 rightChild = rank * 2 + 2;
         uint256 nextRank = rank;
         if (
-            leftChild < dkgCapacityHeap.length &&
-            balanceOf(dkgCapacityHeap[leftChild]) <
-            balanceOf(dkgCapacityHeap[nextRank])
+            leftChild < _groupHeap.length &&
+            _groupSize[_groupHeap[leftChild]] < _groupSize[_groupHeap[nextRank]]
         ) {
             nextRank = leftChild;
         }
         if (
-            rightChild < dkgCapacityHeap.length &&
-            balanceOf(dkgCapacityHeap[rightChild]) <
-            balanceOf(dkgCapacityHeap[nextRank])
+            rightChild < _groupHeap.length &&
+            _groupSize[_groupHeap[rightChild]] <
+            _groupSize[_groupHeap[nextRank]]
         ) {
             nextRank = rightChild;
         }
-        if (nextRank != rank) {
-            swapElemOfHeap(rank, nextRank);
-            minHeapify(nextRank);
+        if (nextRank == rank) {
+            return;
         }
+        swapInHeap(rank, nextRank);
+        percolateDown(nextRank);
     }
 }

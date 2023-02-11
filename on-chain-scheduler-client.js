@@ -11,7 +11,7 @@ const readline = Readline.createInterface({
 })
 
 const Fs = require('fs');
-const onChainSchedulerJson = Fs.readFileSync('./build/OnChainScheduler.abi');
+const onChainSchedulerJson = Fs.readFileSync('./abi/OnChainScheduler.abi');
 const onChainSchedulerAbi = JSON.parse(onChainSchedulerJson);
 const onChainSchedulerContract = new web3.eth.Contract(onChainSchedulerAbi, Config.get('on_chain_scheduler.contract_address'), {
     gas: Config.get('ethereum.gas'),
@@ -19,44 +19,64 @@ const onChainSchedulerContract = new web3.eth.Contract(onChainSchedulerAbi, Conf
 })
 
 console.log("The on-chain scheduler supports these functions:")
-console.log("0. assignAggregator")
-console.log("1. activateAggregator")
-console.log("2. deactivateAggregator")
-console.log("3. increaseDkgCapacity")
-console.log("4. decreaseDkgCapacity")
+console.log("1. getOwner")
+console.log("2. assignGroup")
+console.log("3. newGroup")
+console.log("4. deleteGroup")
+console.log("5. increaseGroupSize")
+console.log("6. decreaseGroupSize")
 readline.question('Type the index to execute the corresponding function, type something else to exit:\n', index => {
     switch (index) {
-        case '0':
-            executeAssignAggregator()
-            break
         case '1':
-            executeActivateAggregator()
+            executeGetOwner()
             break
         case '2':
-            executeDeactivateAggregator()
+            executeAssignGroup()
             break
         case '3':
-            executeIncreaseDkgCapacity()
+            executeNewGroup()
             break
         case '4':
-            executeDecreaseDkgCapacity()
+            executeDeleteGroup()
+            break
+        case '5':
+            executeIncreaseGroupSize()
+            break
+        case '6':
+            executeDecreaseGroupSize()
             break
         default:
             process.exit()
     }
 })
 
-function executeAssignAggregator() {
-    onChainSchedulerContract.methods.assignAggregator().call().then(result => {
+function executeGetOwner() {
+    onChainSchedulerContract.methods.getOwner().call().then(result => {
         console.log(result)
     })
     readline.close()
 }
 
-function executeActivateAggregator() {
-    readline.question('Type the rank of aggregator:\n', _rank => {
-        onChainSchedulerContract.methods.activateAggregator().send({
-            from: Config.get('on_chain_scheduler.aggregator_addresses')[_rank]
+function executeAssignGroup() {
+    onChainSchedulerContract.methods.assignGroup().call().then(result => {
+        console.log(result)
+    })
+    readline.close()
+}
+
+function executeNewGroup() {
+    onChainSchedulerContract.methods.newGroup().send({
+        from: Config.get('on_chain_scheduler.owner_address')
+    }).then(receipt => {
+        console.log(receipt)
+    })
+    readline.close()
+}
+
+function executeDeleteGroup() {
+    readline.question('Type the id of group:\n', groupId => {
+        onChainSchedulerContract.methods.deleteGroup(groupId).send({
+            from: Config.get('on_chain_scheduler.owner_address')
         }).then(receipt => {
             console.log(receipt)
         })
@@ -64,10 +84,10 @@ function executeActivateAggregator() {
     })
 }
 
-function executeDeactivateAggregator() {
-    readline.question('Type the rank of aggregator:\n', _rank => {
-        onChainSchedulerContract.methods.deactivateAggregator().send({
-            from: Config.get('on_chain_scheduler.aggregator_addresses')[_rank]
+function executeIncreaseGroupSize() {
+    readline.question('Type the id of group:\n', groupId => {
+        onChainSchedulerContract.methods.increaseGroupSize(groupId).send({
+            from: Config.get('on_chain_scheduler.owner_address')
         }).then(receipt => {
             console.log(receipt)
         })
@@ -75,28 +95,13 @@ function executeDeactivateAggregator() {
     })
 }
 
-function executeIncreaseDkgCapacity() {
-    readline.question('Type the rank of aggregator:\n', _rank => {
-        readline.question('Type the NFT ID:\n', _nftId => {
-            onChainSchedulerContract.methods.increaseDkgCapacity(_nftId).send({
-                from: Config.get('on_chain_scheduler.aggregator_addresses')[_rank]
-            }).then(receipt => {
-                console.log(receipt)
-            })
-            readline.close()
+function executeDecreaseGroupSize() {
+    readline.question('Type the id of group:\n', groupId => {
+        onChainSchedulerContract.methods.decreaseGroupSize(groupId).send({
+            from: Config.get('on_chain_scheduler.owner_address')
+        }).then(receipt => {
+            console.log(receipt)
         })
-    })
-}
-
-function executeDecreaseDkgCapacity() {
-    readline.question('Type the rank of aggregator:\n', _rank => {
-        readline.question('Type the NFT ID:\n', _nftId => {
-            onChainSchedulerContract.methods.decreaseDkgCapacity(_nftId).send({
-                from: Config.get('on_chain_scheduler.aggregator_addresses')[_rank]
-            }).then(receipt => {
-                console.log(receipt)
-            })
-            readline.close()
-        })
+        readline.close()
     })
 }

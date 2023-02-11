@@ -7,10 +7,6 @@
   },
   "on_chain_scheduler": {
     "contract_address": "0x...",
-    "owner_address": "0x...",
-    "aggregator_addresses": [
-      "0x...",
-      "0x..."
-    ]
+    "owner_address": "0x..."
   }
 }
