@@ -8,5 +8,10 @@
   "on_chain_scheduler": {
     "contract_address": "0x...",
     "owner_address": "0x..."
+  },
+  "off_chain_scheduler": {
+    "contract_address": "0x...",
+    "owner_address": "0x...",
+    "scheduler_address": "0x..."
   }
 }
