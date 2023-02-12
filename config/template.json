@@ -34,5 +34,22 @@
         "actual_public_key_yy": "0x..."
       }
     }
+  },
+  "signature_verifier": {
+    "contract_address": "0x...",
+    "owner_address": "0x...",
+    "verifier_address": "0x...",
+    "g2_element_xx": "0x...",
+    "g2_element_xy": "0x...",
+    "g2_element_yx": "0x...",
+    "g2_element_yy": "0x...",
+    "public_key_xx": "0x...",
+    "public_key_xy": "0x...",
+    "public_key_yx": "0x...",
+    "public_key_yy": "0x...",
+    "message_hash_x": "0x...",
+    "message_hash_y": "0x...",
+    "signature_x": "0x...",
+    "signature_y": "0x..."
   }
 }
