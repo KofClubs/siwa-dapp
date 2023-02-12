@@ -4,7 +4,7 @@ contract('OffChainScheduler', accounts => {
     const expectedOwner = accounts[0]
     const expectedScheduler = accounts[1]
 
-    beforeEach('deploy testing contract, execute SetScheduler', async () => {
+    beforeEach('deploy testing contract, execute setScheduler', async () => {
         instance = await OffChainScheduler.new()
         await instance.setScheduler(accounts[1], {
             from: accounts[0]
