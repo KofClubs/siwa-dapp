@@ -4,14 +4,14 @@ contract('OffChainScheduler', accounts => {
     const expectedOwner = accounts[0]
     const expectedScheduler = accounts[1]
 
-    beforeEach('deploy testing contract, set scheduler', async () => {
+    beforeEach('deploy testing contract, execute SetScheduler', async () => {
         instance = await OffChainScheduler.new()
         await instance.setScheduler(accounts[1], {
             from: accounts[0]
         })
     })
 
-    describe('test constructor, scheduler setter', async () => {
+    describe('test constructor, setScheduler', async () => {
         it('owner shall be accounts[0], scheduler shall be accounts[1]', async () => {
             let actualOwner = await instance.getOwner()
             assert.equal(actualOwner, expectedOwner, 'wrong owner')

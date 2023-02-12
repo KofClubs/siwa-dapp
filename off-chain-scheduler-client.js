@@ -11,9 +11,9 @@ const readline = Readline.createInterface({
 })
 
 const Fs = require('fs');
-const OffChainSchedulerJson = Fs.readFileSync('./abi/OffChainScheduler.abi');
-const OffChainSchedulerAbi = JSON.parse(OffChainSchedulerJson);
-const OffChainSchedulerContract = new web3.eth.Contract(OffChainSchedulerAbi, Config.get('off_chain_scheduler.contract_address'), {
+const offChainSchedulerJson = Fs.readFileSync('./abi/OffChainScheduler.abi');
+const offChainSchedulerAbi = JSON.parse(offChainSchedulerJson);
+const offChainSchedulerContract = new web3.eth.Contract(offChainSchedulerAbi, Config.get('off_chain_scheduler.contract_address'), {
     gas: Config.get('ethereum.gas'),
     gasPrice: Config.get('ethereum.gas_price')
 })
@@ -63,21 +63,21 @@ readline.question('Type the index to execute the corresponding function, type so
 })
 
 function executeGetOwner() {
-    OffChainSchedulerContract.methods.getOwner().call().then(result => {
+    offChainSchedulerContract.methods.getOwner().call().then(result => {
         console.log(result)
     })
     readline.close()
 }
 
 function executeGetScheduler() {
-    OffChainSchedulerContract.methods.getScheduler().call().then(result => {
+    offChainSchedulerContract.methods.getScheduler().call().then(result => {
         console.log(result)
     })
     readline.close()
 }
 
 function executeSetScheduler() {
-    OffChainSchedulerContract.methods.setScheduler(Config.get('off_chain_scheduler.scheduler_address')).send({
+    offChainSchedulerContract.methods.setScheduler(Config.get('off_chain_scheduler.scheduler_address')).send({
         from: Config.get('off_chain_scheduler.owner_address')
     }).then(receipt => {
         console.log(receipt)
@@ -86,7 +86,7 @@ function executeSetScheduler() {
 }
 
 function executeAssignGroup() {
-    OffChainSchedulerContract.methods.assignGroup().send({
+    offChainSchedulerContract.methods.assignGroup().send({
         from: Config.get('off_chain_scheduler.owner_address')
     }).then(receipt => {
         console.log(receipt)
@@ -97,7 +97,7 @@ function executeAssignGroup() {
 function executeHandleAssignGroup() {
     readline.question('Type the id of ctx:\n', ctxId => {
         readline.question('Type the id of group:\n', groupId => {
-            OffChainSchedulerContract.methods.handleAssignGroup(ctxId, groupId).send({
+            offChainSchedulerContract.methods.handleAssignGroup(ctxId, groupId).send({
                 from: Config.get('off_chain_scheduler.scheduler_address')
             }).then(receipt => {
                 console.log(receipt)
@@ -108,7 +108,7 @@ function executeHandleAssignGroup() {
 }
 
 function executeNewGroup() {
-    OffChainSchedulerContract.methods.newGroup().send({
+    offChainSchedulerContract.methods.newGroup().send({
         from: Config.get('off_chain_scheduler.owner_address')
     }).then(receipt => {
         console.log(receipt)
@@ -118,7 +118,7 @@ function executeNewGroup() {
 
 function executeDeleteGroup() {
     readline.question('Type the id of group:\n', groupId => {
-        OffChainSchedulerContract.methods.deleteGroup(groupId).send({
+        offChainSchedulerContract.methods.deleteGroup(groupId).send({
             from: Config.get('off_chain_scheduler.owner_address')
         }).then(receipt => {
             console.log(receipt)
@@ -129,7 +129,7 @@ function executeDeleteGroup() {
 
 function executeIncreaseGroupSize() {
     readline.question('Type the id of group:\n', groupId => {
-        OffChainSchedulerContract.methods.increaseGroupSize(groupId).send({
+        offChainSchedulerContract.methods.increaseGroupSize(groupId).send({
             from: Config.get('off_chain_scheduler.owner_address')
         }).then(receipt => {
             console.log(receipt)
@@ -140,7 +140,7 @@ function executeIncreaseGroupSize() {
 
 function executeDecreaseGroupSize() {
     readline.question('Type the id of group:\n', groupId => {
-        OffChainSchedulerContract.methods.decreaseGroupSize(groupId).send({
+        offChainSchedulerContract.methods.decreaseGroupSize(groupId).send({
             from: Config.get('off_chain_scheduler.owner_address')
         }).then(receipt => {
             console.log(receipt)
