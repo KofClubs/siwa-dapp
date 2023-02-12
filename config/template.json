@@ -51,5 +51,10 @@
     "message_hash_y": "0x...",
     "signature_x": "0x...",
     "signature_y": "0x..."
+  },
+  "on_chain_aggregator": {
+    "contract_address": "0x...",
+    "owner_address": "0x...",
+    "permitted_signer": "0x..."
   }
 }
