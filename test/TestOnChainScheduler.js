@@ -16,7 +16,7 @@ contract('OnChainScheduler', accounts => {
         })
     })
 
-    describe('test functions', async () => {
+    describe('test all public functions', async () => {
         it('test all public functions', async () => {
             /****** new group 1, 2; delete group 1, 2 ******/
             let newGroup1Result = await instance.newGroup({

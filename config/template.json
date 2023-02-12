@@ -5,13 +5,34 @@
     "gas": 6721975,
     "gas_price": 20000000000
   },
-  "on_chain_scheduler": {
-    "contract_address": "0x...",
-    "owner_address": "0x..."
-  },
   "off_chain_scheduler": {
     "contract_address": "0x...",
     "owner_address": "0x...",
     "scheduler_address": "0x..."
+  },
+  "on_chain_scheduler": {
+    "contract_address": "0x...",
+    "owner_address": "0x..."
+  },
+  "public_key_registry": {
+    "contract_address": "0x...",
+    "owner_address": "0x...",
+    "node": {
+      "1": {
+        "address": "0x...",
+        "public_key_xx": "0x...",
+        "public_key_xy": "0x...",
+        "public_key_yx": "0x...",
+        "public_key_yy": "0x..."
+      }
+    },
+    "group": {
+      "1": {
+        "actual_public_key_xx": "0x...",
+        "actual_public_key_xy": "0x...",
+        "actual_public_key_yx": "0x...",
+        "actual_public_key_yy": "0x..."
+      }
+    }
   }
 }
